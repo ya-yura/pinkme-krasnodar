@@ -64,6 +64,69 @@ const updatePlan = (key) => {
 
 planButtons.forEach((button) => button.addEventListener("click", () => updatePlan(button.dataset.plan)));
 
+const interestButtons = document.querySelectorAll("[data-interest]");
+const loadButtons = document.querySelectorAll("[data-load]");
+const loadStep = document.querySelector("[data-choice-load-step]");
+const choiceSummary = document.querySelector("[data-choice-summary]");
+const choiceInterestValue = document.querySelector("[data-choice-interest]");
+const choiceLoadValue = document.querySelector("[data-choice-load-value]");
+const choiceManagerLink = document.querySelector("[data-choice-manager]");
+const choiceStatus = document.querySelector("[data-choice-status]");
+const choiceState = { interest: "", load: "" };
+
+const setChoiceActive = (buttons, value, attribute) => {
+  buttons.forEach((button) => {
+    const isActive = button.dataset[attribute] === value;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+};
+
+const updateChoiceSummary = () => {
+  if (!choiceSummary || !choiceInterestValue || !choiceLoadValue) return;
+  if (choiceStatus) choiceStatus.textContent = "";
+  choiceInterestValue.textContent = choiceState.interest;
+  choiceLoadValue.textContent = choiceState.load;
+  choiceSummary.hidden = !(choiceState.interest && choiceState.load);
+};
+
+interestButtons.forEach((button) => {
+  button.setAttribute("aria-pressed", "false");
+  button.addEventListener("click", () => {
+    choiceState.interest = button.dataset.interest;
+    setChoiceActive(interestButtons, choiceState.interest, "interest");
+    if (loadStep) loadStep.hidden = false;
+    updateChoiceSummary();
+  });
+});
+
+loadButtons.forEach((button) => {
+  button.setAttribute("aria-pressed", "false");
+  button.addEventListener("click", () => {
+    choiceState.load = button.dataset.load;
+    setChoiceActive(loadButtons, choiceState.load, "load");
+    updateChoiceSummary();
+  });
+});
+
+if (choiceManagerLink) {
+  choiceManagerLink.addEventListener("click", async () => {
+    if (!choiceState.interest || !choiceState.load) return;
+
+    const plainInterest = choiceState.interest.replace(/\u00a0/g, " ");
+    const plainLoad = choiceState.load.replace(/\u00a0/g, " ");
+    const message = `Здравствуйте! Смотрю направления Pinkme. Интересует: ${plainInterest}. По нагрузке хотелось бы: ${plainLoad}. Подскажите, пожалуйста, какое занятие лучше выбрать?`;
+    if (!navigator.clipboard?.writeText || !window.isSecureContext) return;
+
+    try {
+      await navigator.clipboard.writeText(message);
+      if (choiceStatus) choiceStatus.textContent = "Запрос скопирован — осталось отправить его менеджеру";
+    } catch {
+      if (choiceStatus) choiceStatus.textContent = "";
+    }
+  });
+}
+
 const revealElements = document.querySelectorAll(".reveal");
 if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
   const revealObserver = new IntersectionObserver((entries, observer) => {
